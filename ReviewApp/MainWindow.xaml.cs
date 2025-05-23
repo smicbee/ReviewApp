@@ -36,13 +36,12 @@ namespace ReviewApp
             // Starte mit Initial-Diff
             UpdateDiff(originalHtml);
 
-            LoadingOverlay.Visibility = Visibility.Visible;
-            for (int i = 0; i < 10; i++)
+      
+            for (int i = 0; i < 100; i++)
             {
-                AddImageComment(1,@"B:\Google Drive\Desktop\image.jpg", "Image Caption #" + i.ToString());
+                AddImageComment(1, @"Z:\Privat\Eigene Bilder\ICQ\DSC00401.JPG", "Image Caption #" + i.ToString());
             }
-            LoadingOverlay.Visibility = Visibility.Collapsed;
-        }
+          }
 
         public class ImageComment
         {
@@ -191,6 +190,22 @@ namespace ReviewApp
             // Hier später deine Logik zum Speichern der Review einfügen
         }
 
+        private async Task DownloadFillImage(string imgPath, Image img)
+        {
+            BitmapImage bitmap = await Task.Run(() =>
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.UriSource = new Uri(imgPath, UriKind.RelativeOrAbsolute);
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.EndInit();
+                bmp.Freeze(); // Macht es thread-sicher!
+                return bmp;
+            });
+
+            // Im UI-Thread verwenden
+            img.Source = bitmap;
+        }
 
         private Task AddImageComment(int imgId, string imagePath, string originalCaption)
         {
@@ -222,11 +237,14 @@ namespace ReviewApp
             // Bild
             var image = new Image
             {
-                Source = new BitmapImage(new Uri(imagePath, UriKind.RelativeOrAbsolute)),
                 Width = 128,
                 Height = 128,
                 Margin = new Thickness(5)
             };
+
+            // Bild asynchron laden
+            _ = DownloadFillImage(imagePath, image);
+
 
             // Originaltext speichern (lokale Variable für diese Zeile)
             // Editierbares Textfeld
