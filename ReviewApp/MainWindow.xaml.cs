@@ -8,12 +8,10 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Xml.Linq;
 
 namespace ReviewApp
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private string originalHtml = "Das ist ein <b>Test</b>.";
@@ -41,7 +39,7 @@ namespace ReviewApp
             LoadingOverlay.Visibility = Visibility.Visible;
             for (int i = 0; i < 10; i++)
             {
-                AddImageComment(@"B:\Google Drive\Desktop\image.jpg", "Image Caption #" + i.ToString());
+                AddImageComment(1,@"B:\Google Drive\Desktop\image.jpg", "Image Caption #" + i.ToString());
             }
             LoadingOverlay.Visibility = Visibility.Collapsed;
         }
@@ -109,28 +107,124 @@ namespace ReviewApp
         </body>
         </html>";
 
-
-
-
-        private Task AddImageComment(string imagePath, string originalCaption)
+        class ReviewSaveFile
         {
-            int imgid;
+            public ReviewSaveFile(MainWindow main)
+            {
+                this.JobSummary = main.editorHtml;
+                this.ImageComment = main.imageList;
+                this.JobComment = main.CommentTextBox.Text;
+
+                Update();
+
+            }
+            public string JobSummary { get; set; }
+            public List<ImageCommentItem> ImageComment { get; set; }
+            public string JobComment { get; set; }
+
+            public void Update()
+            {
+
+                foreach(var item in ImageComment)
+                {
+                    item.Update();
+                }
+            }
+        };
+
+        class ImageCommentItem
+        {
+            public ImageCommentItem(int imgID, string imgPath, string caption, Panel panel) { 
+                this._panel = panel;
+                this.imgID = imgID;
+                this.imgPath = imgPath;
+                this.caption = caption;
+            }
+
+            private Panel _panel;
+            public string imgPath { get; set; }
+            public int imgID { get; set; }
+            public string caption { get; set; }
+    
+
+            public void Update()
+            {
+
+                        foreach (var element in _panel.Children)
+                        {
+
+                            if (element is Label lab)
+                            {
+                                    foreach (var element2 in _panel.Children)
+                                    {
+                                        if (element2 is TextBox textBox)
+                                        {
+                                            this.caption = textBox.Text;
+                                        }
+                                    }
+                            
+                            }
+                       
+                        }
+                      
+
+                   
+            }
+
+        }
+
+        List<ImageCommentItem> imageList = new List<ImageCommentItem>();
+
+        private void SaveReview_Click(object sender, RoutedEventArgs e)
+        {
+
+            var saveFile = new ReviewSaveFile(this);
+            var output = Newtonsoft.Json.JsonConvert.SerializeObject(saveFile);
+         
+            MessageBox.Show("Review saved!");
+            // Hier später deine Logik zum Speichern der Review einfügen
+        }
+
+        private void SendEmail_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Email sent!");
+            // Hier später deine Logik zum Speichern der Review einfügen
+        }
+
+
+        private Task AddImageComment(int imgId, string imagePath, string originalCaption)
+        {
             string original = originalCaption;
+
+
 
             // Hauptcontainer für die Zeile
             var row = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 10, 0, 10),
+                Margin = new Thickness(0, 5, 0, 5),
                 VerticalAlignment = VerticalAlignment.Top
             };
+
+
+
+            var LabelImgID = new Label
+            {
+                Content = imgId,
+                Visibility = Visibility.Collapsed,
+                Width = 128,
+                Height = 128,
+                Margin = new Thickness(5),
+                Tag = imgId.ToString()
+            };
+
 
             // Bild
             var image = new Image
             {
                 Source = new BitmapImage(new Uri(imagePath, UriKind.RelativeOrAbsolute)),
-                Width = 256,
-                Height = 256,
+                Width = 128,
+                Height = 128,
                 Margin = new Thickness(5)
             };
 
@@ -140,7 +234,7 @@ namespace ReviewApp
             {
                 Text = originalCaption,
                 Width = 400,
-                Height = 200,
+                Height = 128,
                 TextWrapping = TextWrapping.Wrap,
                 AcceptsReturn = true,
                 Margin = new Thickness(5)
@@ -153,7 +247,7 @@ namespace ReviewApp
             var diffView = new Microsoft.Web.WebView2.Wpf.WebView2
             {
                 Width = 400,
-                Height = 200,
+                Height = 128,
                 Margin = new Thickness(5)
             };
             diffView.EnsureCoreWebView2Async();
@@ -179,32 +273,7 @@ namespace ReviewApp
                 Margin = new Thickness(0, 10, 10, 0),
                 ToolTip = "Accept"
             };
-            acceptButton.Click += (s, e) =>
-            {
-                // Änderungen übernehmen: Original auf aktuellen Text setzen
-                original = textBox.Text;
-
-                // Diff neu berechnen - jetzt keine Änderungen mehr
-                var differ = new HtmlDiff.HtmlDiff(original, original);
-                string diffHtml = differ.Build();
-
-                string styledHtml = $@"
-        <html>
-        <head>
-            <style>
-                ins {{ background-color: lightgreen; text-decoration: none; }}
-                del {{ background-color: lightcoral; text-decoration: none; }}
-                body {{ font-family: Segoe UI, sans-serif; font-size: 14px; margin: 0; padding: 4px; }}
-            </style>
-        </head>
-        <body>{diffHtml}</body>
-        </html>";
-
-                if (diffView.CoreWebView2 != null)
-                {
-                    diffView.NavigateToString(styledHtml);
-                }
-            };
+       
 
             // Revert-Button
             var revertButton = new Button
@@ -223,27 +292,65 @@ namespace ReviewApp
                 textBox.Text = original;
 
                 // Diff neu berechnen - keine Änderungen
-                var differ = new HtmlDiff.HtmlDiff(original, original);
-                string diffHtml = differ.Build();
+                //var differ = new HtmlDiff.HtmlDiff(original, original);
+                string diffHtml = "";
 
                 string styledHtml = $@"
-        <html>
-        <head>
-            <style>
-                ins {{ background-color: lightgreen; text-decoration: none; }}
-                del {{ background-color: lightcoral; text-decoration: none; }}
-                body {{ font-family: Segoe UI, sans-serif; font-size: 14px; margin: 0; padding: 4px; }}
-            </style>
-        </head>
-        <body>{diffHtml}</body>
-        </html>";
+                <html>
+                <head>
+                    <style>
+                        ins {{ background-color: lightgreen; text-decoration: none; }}
+                        del {{ background-color: lightcoral; text-decoration: none; }}
+                        body {{ font-family: Segoe UI, sans-serif; font-size: 14px; margin: 0; padding: 4px; }}
+                    </style>
+                </head>
+                <body>{diffHtml}</body>
+                </html>";
 
                 if (diffView.CoreWebView2 != null)
                 {
                     diffView.NavigateToString(styledHtml);
                 }
+
+
+                acceptButton.Visibility = Visibility.Collapsed;
+                revertButton.Visibility = Visibility.Collapsed;
             };
 
+            acceptButton.Click += (s, e) =>
+            {
+                // Änderungen übernehmen: Original auf aktuellen Text setzen
+                original = textBox.Text;
+
+                // Diff neu berechnen - jetzt keine Änderungen mehr
+                //var differ = new HtmlDiff.HtmlDiff(original, original);
+                string diffHtml = "";
+
+                string styledHtml = $@"
+                <html>
+                <head>
+                    <style>
+                        ins {{ background-color: lightgreen; text-decoration: none; }}
+                        del {{ background-color: lightcoral; text-decoration: none; }}
+                        body {{ font-family: Segoe UI, sans-serif; font-size: 14px; margin: 0; padding: 4px; }}
+                    </style>
+                </head>
+                <body>{diffHtml}</body>
+                </html>";
+
+                if (diffView.CoreWebView2 != null)
+                {
+                    diffView.NavigateToString(styledHtml);
+                }
+
+                acceptButton.Visibility = Visibility.Collapsed;
+                revertButton.Visibility = Visibility.Collapsed;
+            };
+
+            acceptButton.Visibility = Visibility.Collapsed;
+            revertButton.Visibility = Visibility.Collapsed;
+
+          
             buttonsPanel.Children.Add(acceptButton);
             buttonsPanel.Children.Add(revertButton);
 
@@ -254,30 +361,39 @@ namespace ReviewApp
                 string diffHtml = differ.Build();
 
                 string styledHtml = $@"
-        <html>
-        <head>
-            <style>
-                ins {{ background-color: lightgreen; text-decoration: none; }}
-                del {{ background-color: lightcoral; text-decoration: none; }}
-                body {{ font-family: Segoe UI, sans-serif; font-size: 14px; margin: 0; padding: 4px; }}
-            </style>
-        </head>
-        <body>{diffHtml}</body>
-        </html>";
+                <html>
+                <head>
+                    <style>
+                        ins {{ background-color: lightgreen; text-decoration: none; }}
+                        del {{ background-color: lightcoral; text-decoration: none; }}
+                        body {{ font-family: Segoe UI, sans-serif; font-size: 14px; margin: 0; padding: 4px; }}
+                    </style>
+                </head>
+                <body>{diffHtml}</body>
+                </html>";
 
                 if (diffView.CoreWebView2 != null)
                 {
                     diffView.NavigateToString(styledHtml);
                 }
+
+                // Buttons nur anzeigen, wenn sich der Text unterscheidet
+                bool hasChanges = !string.Equals(original, textBox.Text, StringComparison.Ordinal);
+                acceptButton.Visibility = hasChanges ? Visibility.Visible : Visibility.Collapsed;
+                revertButton.Visibility = hasChanges ? Visibility.Visible : Visibility.Collapsed;
             };
 
             // Controls zum Haupt-StackPanel hinzufügen
+            row.Children.Add(LabelImgID);
             row.Children.Add(image);
             row.Children.Add(textBox);
             row.Children.Add(diffView);
             row.Children.Add(buttonsPanel);
 
             ImageCommentPanel.Children.Add(row);
+
+            var item = new ImageCommentItem(imgId, imagePath, originalCaption, row);
+            imageList.Add(item);
 
             return null;
         }

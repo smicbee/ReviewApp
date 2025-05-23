@@ -6,8 +6,50 @@
     x:Class="ReviewApp.MainWindow"
     Title="Review App"
     av:DesignHeight="389.738" av:DesignWidth="619.605">
+    <Grid>
+        <!-- Zwei Zeilen: Button oben, Tabs unten -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-    <TabControl>
+        <!-- Obere Leiste mit Save-Button -->
+        <DockPanel Grid.Row="0" Margin="10">
+            <Label Content="MC24X1-00047"
+                   x:Name="Label_JobID"
+                   FontWeight="Bold"
+                   VerticalAlignment="Center"
+                   FontSize="20"
+                   DockPanel.Dock="Left"/>
+            
+            <Label x:Name ="Label_JobOwner" 
+                   Content="Michael Beetz"
+                   FontWeight="Bold"
+                   VerticalAlignment="Center"
+                   FontSize="20"
+                   DockPanel.Dock="Left"/>
+
+            <Button Content="✉️ Send Email"
+                 HorizontalAlignment="Right"
+                 VerticalAlignment="Top"
+                 Padding="10,10"
+                 Margin="0,0,10,0"
+                 Click="SendEmail_Click"
+                 DockPanel.Dock="Right"/>
+
+            
+            <Button Content="💾 Save Review"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Padding="10,10"
+                    Margin="0,0,10,0"
+                    Click="SaveReview_Click"
+                    DockPanel.Dock="Right"/>
+            
+            </DockPanel>
+
+        <DockPanel Grid.Row="1" Margin="0">
+        <TabControl>
         <!-- Tab 1: Job Summary -->
         <TabItem Header="Job Summary">
             <Grid>
@@ -66,5 +108,19 @@
 
             </ScrollViewer>
         </TabItem>
-    </TabControl>
+        <TabItem Header="Comments">
+            <Grid Background="White">
+                <TextBox 
+            x:Name="CommentTextBox"
+            Margin="10" 
+            TextWrapping="Wrap" 
+            AcceptsReturn="True" 
+            VerticalScrollBarVisibility="Auto" 
+            HorizontalScrollBarVisibility="Auto" />
+            </Grid>
+        </TabItem>
+
+        </TabControl>
+        </DockPanel>
+    </Grid>
 </Window>
